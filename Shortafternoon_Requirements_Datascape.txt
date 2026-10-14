@@ -1,0 +1,105 @@
+# =============================================================================
+# Shortafternoon - Requirements - DATASCAPE 2026
+# Notebook : Shortafternoon_Notebook_Datascape.ipynb
+# Write-up : Shortafternoon_Writeup_Datascape.pdf
+# Tim      : Shortafternoon - Business Information Technology, BINUS @Bekasi
+#            Dennis Setiawan (ketua) - 2802536644
+#            Aaron Cusiano - 2802502706
+#            Yasin Novian Saputra - 2802507070
+#
+# File ini bisa langsung dipasang dengan:  pip install -r Shortafternoon_Requirements_Datascape.txt
+# Semua baris yang diawali '#' adalah informasi tambahan untuk menjalankan ulang notebook.
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# 1. PACKAGE PYTHON
+# -----------------------------------------------------------------------------
+# Notebook dijalankan di Google Colab (GPU Tesla T4, torch 2.11.0+cu130).
+# Package bawaan Colab dipakai apa adanya; package tambahan dipasang otomatis
+# oleh sel pertama notebook (%pip install).
+#
+# Notebook juga sudah diuji jalan dari awal sampai akhir (data uji kecil, CPU) dengan:
+# Python 3.13, torch 2.14.1, torchvision 0.29.1, timm 1.0.30, open_clip_torch 3.3.0,
+# numpy 2.5.3, pandas 3.0.6, scipy 1.18.1, scikit-learn 1.9.1, matplotlib 3.11.2,
+# pillow 12.3.0, ImageHash 4.3.2, huggingface_hub 2.1.1.
+
+# --- deep learning ---
+torch>=2.3            # bawaan Colab; dipakai: training, mixed precision (torch.amp)
+torchvision>=0.18     # bawaan Colab; transformasi gambar
+timm>=1.0             # ConvNeXt-tiny, DINOv2 ViT-S/14, EfficientNetV2-S
+open_clip_torch>=2.24 # CLIP ViT-B/16 (bobot laion2b_s34b_b88k)
+
+# --- data & evaluasi ---
+numpy>=1.24
+pandas>=2.0
+scipy>=1.10           # connected_components, median_filter
+scikit-learn>=1.3     # split stratified, StandardScaler, F1, confusion matrix
+matplotlib>=3.7
+
+# --- gambar ---
+pillow>=10.0          # membaca JPEG/WEBP/PNG/AVIF apa pun ekstensinya
+ImageHash>=4.3        # phash & dhash untuk audit duplikat
+pillow-avif-plugin    # opsional: dukungan AVIF untuk Pillow lama (1 file train berformat AVIF)
+
+# --- unduh data ---
+huggingface_hub>=0.20 # snapshot_download dataset dari Hugging Face
+
+# --- opsional (eksperimen pembanding §12, mati secara default) ---
+# ultralytics          # YOLO11s-cls; dipasang otomatis hanya jika RUN["yolo"] = True
+
+
+# -----------------------------------------------------------------------------
+# 2. DATA
+# -----------------------------------------------------------------------------
+# Data training & test (salinan dataset resmi lomba, tidak diubah):
+#   https://huggingface.co/datasets/Zhuhn/Package-QC-dataset
+#   Isi: Train_Set/{Aman, Rusak, Lainnya}/ (8.800 / 3.001 / 423 foto), Test_Set/ (3.057 foto),
+#        sample_submission.csv. Ukuran +- 3,3 GB. Repo publik, tidak perlu token.
+#   Notebook mengunduhnya otomatis ke /content/data (sel §1.1).
+#
+# Audit data: label dan file TIDAK diubah, sehingga tidak ada data training versi lain.
+#   Hasil audit (meta.csv, daftar duplikat, val bersih, grup foto test kembar) dibuat ulang
+#   otomatis oleh notebook di §3 dan disimpan di MyDrive/package-qc/runs/eda/.
+#   Split train/val (stratified 85/15, seed 42) juga dibuat ulang otomatis di §2.
+#
+# File tambahan yang WAJIB untuk §11 (pasca-proses akhir):
+#   Prediksi EfficientNetV2-S 384 px dari notebook tim terpisah, berupa submission.csv
+#   (kolom: filename,label). Unggah file ini saat sel §11.1 menampilkan tombol "Choose Files",
+#   atau taruh di /content/test_probabilities.csv. Tanpa file ini §11 tidak dapat berjalan,
+#   tetapi §0-§10 tetap menghasilkan submission ensemble (MyDrive/package-qc/submission.csv).
+
+
+# -----------------------------------------------------------------------------
+# 3. LINGKUNGAN & CARA MENJALANKAN ULANG
+# -----------------------------------------------------------------------------
+# Platform  : Google Colab, Runtime -> Change runtime type -> GPU (T4 cukup; L4/A100 lebih cepat).
+# Penyimpanan: +- 6 GB disk lokal Colab (data mentah + cache 448 px) dan +- 1 GB Google Drive
+#              (embedding, checkpoint terbaik, prediksi). Notebook meminta izin mount Google Drive.
+# Internet  : dibutuhkan untuk mengunduh data (Hugging Face) dan bobot pretrained
+#             (CLIP, DINOv2, ConvNeXt, EfficientNetV2 dari Hugging Face Hub / timm / open_clip).
+#
+# Langkah:
+#   1. Buka Shortafternoon_Notebook_Datascape.ipynb di Google Colab, pilih runtime GPU.
+#   2. Runtime -> Run all. Izinkan akses Google Drive.
+#   3. Saat §11.1 meminta file, unggah submission.csv EfficientNetV2-S (lihat bagian 2).
+#   4. File akhir: MyDrive/package-qc/submission_final.csv (kolom filename,label; 3.057 baris).
+#
+# Bila sesi Colab terputus: jalankan Run all lagi. Tahap yang sudah selesai dilewati otomatis
+# dan training CNN dilanjutkan dari epoch terakhir (checkpoint last.pt di Google Drive).
+#
+# Perkiraan waktu (T4, terukur di run terakhir):
+#   unduh data +- 44 menit (tanpa token Hugging Face), cache gambar +- 3 menit,
+#   training EfficientNetV2-S 384 px +- 53 menit (12 epoch). Tahap lain beberapa sampai puluhan menit.
+#
+# Pengaturan utama ada di sel §0.1 (konfigurasi):
+#   - ENSEMBLE_RUNS       : komponen ensemble.
+#   - USE_PSEUDO_OVERRIDE : False (label train untuk foto test identik TIDAK dipakai).
+#   - RUN[...]            : saklar tiap tahap; eksperimen pembanding mati secara default.
+#
+# Mereproduksi skor public terbaik (0,79411):
+#   hapus "effnet384" dari ENSEMBLE_RUNS (§0.1), jalankan ulang §9, lalu di §11.2 set TARGET_RUSAK = None.
+#   Konfigurasi bawaan notebook menghasilkan versi 0,79288 (ensemble 5 model, jumlah Rusak 1.058).
+#
+# Catatan: skor dapat sedikit berbeda antar run karena perbedaan GPU/versi library
+# (operasi GPU tidak sepenuhnya deterministik).

@@ -6,6 +6,9 @@ Klasifikasi kondisi fisik paket dari foto ke dalam 3 kelas: **Aman**, **Rusak**,
 
 | File | Isi |
 |---|---|
+| `Shortafternoon_Notebook_Datascape.ipynb` | Notebook final yang dikumpulkan (hasil run di Colab T4, sudah dirapikan) |
+| `Shortafternoon_Writeup_Datascape.pdf` | Write-up / laporan teknis |
+| `Shortafternoon_Requirements_Datascape.txt` | Requirements, link data, dan cara menjalankan ulang |
 | `DATASCAPE2026_Package_QC_Pipeline.ipynb` | Notebook pipeline lengkap: split → audit data → embedding CLIP + DINOv2 → MLP → CLIP multi-crop → ConvNeXt-tiny (2 putaran) → ensemble → `submission.csv` |
 | `split/train.csv`, `split/val.csv` | Split stratified 85/15 (seed 42), path relatif terhadap folder data. Notebook membuat ulang file yang sama secara otomatis. |
 
